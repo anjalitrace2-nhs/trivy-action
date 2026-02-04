@@ -8,6 +8,9 @@ inputs:
   repo-path:
     description: "Path to git repo to scan (local or remote)"
     required: false
+  include-iac:
+    description: "For git repos - also scan Infra As Code"
+    required: false
   github-token:
     description: 'GitHub token for dependency graph upload'
     required: false
@@ -33,6 +36,7 @@ runs:
       env:
         IMAGE_REF: ${{ inputs.image-ref }}
         REPO_PATH: ${{ inputs.repo-path }}
+        INCLUDE_IAC: ${{ inputs.include-iac }}
       run: |
         echo "IMAGE_REF:" $IMAGE_REF
         echo "REPO_PATH:" $REPO_PATH
@@ -41,6 +45,9 @@ runs:
           exit 1
         elif [[ -n $IMAGE_REF && -n $REPO_PATH ]]; then
           echo "Must define only one of IMAGE_REF or REPO_PATH, not both."
+          exit 1
+        elif [[ -n $INCLUDE_IAC && -z $REPO_PATH ]]; then
+          echo "Must define a REPO_PATH in order to scan Infra As Code (IAC)."
           exit 1
         fi
 
@@ -61,6 +68,22 @@ runs:
         scan-ref: ${{ inputs.repo-path }}
         format: spdx-json
         output: sbom.spdx.json
+
+    - name: Trivy SBOM SPDX Scan - Infra As Code
+      if: ${{ inputs.repo-path != '' && inputs.include-iac == 'true' }}
+      uses: aquasecurity/trivy-action@0.20.0
+      with:
+        scan-type: config
+        scan-ref: ${{ inputs.repo-path }}
+        format: spdx-json
+        output: sbom-infra.spdx.json
+
+    - name: Merge SBOMs
+      if: ${{ inputs.repo-path != '' && inputs.include-iac == 'true' }}
+      shell: bash
+      run: |
+        npm install -g @cyclonedx/cyclonedx-cli
+        cyclonedx-cli merge --input-files sbom.spdx.json sbom-terraform.json --output-file sbom.spdx.json
 
     - name: Trivy SBOM Dependency Graph Upload
       if: ${{ inputs.publish-to-dependency-graph == 'true' && inputs.github-token != '' }}

@@ -196,9 +196,65 @@ jobs:
         id: sbom-scan-remote
         uses: ./sbom-scan
         with:
-          repo-path: "https://github.com/PokeAPI/pokeapi"
+          repo-path: "https://github.com/NHSDigital/NRLF"
           publish-to-dependency-graph: "false"
           artifact-name: "sbom-remote-repo"
+      - name: Verify SBOM output with assertions
+        run: |
+          echo "SBOM path: ${{ steps.sbom-scan-remote.outputs.sbom-path }}"
+          
+          if [[ -z "${{ steps.sbom-scan-remote.outputs.sbom-path }}" ]]; then
+            echo "SBOM path output is empty"
+            exit 1
+          fi
+          
+          if [[ ! -f "${{ steps.sbom-scan-remote.outputs.sbom-path }}" ]]; then
+            echo "SBOM file not found: ${{ steps.sbom-scan-remote.outputs.sbom-path }}"
+            exit 1
+          fi
+          
+          if [[ ! -s "${{ steps.sbom-scan-remote.outputs.sbom-path }}" ]]; then
+            echo "SBOM file is empty"
+            exit 1
+          fi
+          
+          if ! jq empty "${{ steps.sbom-scan-remote.outputs.sbom-path }}" 2>/dev/null; then
+            echo "SBOM is not valid JSON"
+            exit 1
+          fi
+          
+          if ! jq -e '.spdxVersion' "${{ steps.sbom-scan-remote.outputs.sbom-path }}" >/dev/null; then
+            echo "SBOM missing spdxVersion field"
+            exit 1
+          fi
+          
+          if ! jq -e '.name' "${{ steps.sbom-scan-remote.outputs.sbom-path }}" >/dev/null; then
+            echo "SBOM missing name field"
+            exit 1
+          fi
+          
+          if ! jq -e '.creationInfo' "${{ steps.sbom-scan-remote.outputs.sbom-path }}" >/dev/null; then
+            echo "SBOM missing creationInfo field"
+            exit 1
+          fi
+          
+          if ! jq -e '.packages' "${{ steps.sbom-scan-remote.outputs.sbom-path }}" >/dev/null; then
+            echo "SBOM missing packages array"
+            exit 1
+          fi
+          
+          file_size=$(wc -c < "${{ steps.sbom-scan-remote.outputs.sbom-path }}")
+          echo "SBOM file size: ${file_size} bytes"
+          
+          echo "All SBOM scan assertions passed"
+      - name: Test SBOM Scan with repo including Infra As Code
+        id: sbom-scan-with-iac
+        uses: ./sbom-scan
+        with:
+          repo-path: "https://github.com/NHSDigital/NRLF"
+          include-iac: "true"
+          publish-to-dependency-graph: "false"
+          artifact-name: "sbom-with-iac"
       - name: Verify SBOM output with assertions
         run: |
           echo "SBOM path: ${{ steps.sbom-scan-remote.outputs.sbom-path }}"
