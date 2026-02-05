@@ -71,19 +71,19 @@ runs:
 
     - name: Trivy SBOM SPDX Scan - Infra As Code (local only)
       if: ${{ inputs.repo-path != '' && inputs.include-iac == 'true' }}
-      uses: aquasecurity/trivy-action@0.20.0
+      uses: aquasecurity/trivy-action@0.33.0
       with:
-        scan-type: config
+        scan-type: fs
         scan-ref: ${{ inputs.repo-path }}
         format: spdx-json
         output: sbom-infra.spdx.json
 
-    - name: Merge SBOMs
-      if: ${{ inputs.repo-path != '' && inputs.include-iac == 'true' }}
-      shell: bash
-      run: |
-        npm install -g @cyclonedx/cyclonedx-cli
-        cyclonedx-cli merge --input-files sbom.spdx.json sbom-terraform.json --output-file sbom.spdx.json
+    # - name: Merge SBOMs
+    #   if: ${{ inputs.repo-path != '' && inputs.include-iac == 'true' }}
+    #   shell: bash
+    #   run: |
+    #     npm install -g @cyclonedx/cyclonedx-cli
+    #     cyclonedx-cli merge --input-files sbom.spdx.json sbom-terraform.json --output-file sbom.spdx.json
 
     - name: Trivy SBOM Dependency Graph Upload
       if: ${{ inputs.publish-to-dependency-graph == 'true' && inputs.github-token != '' }}
