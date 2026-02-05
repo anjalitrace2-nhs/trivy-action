@@ -69,7 +69,7 @@ runs:
         format: spdx-json
         output: sbom.spdx.json
 
-    - name: Trivy SBOM SPDX Scan - Infra As Code
+    - name: Trivy SBOM SPDX Scan - Infra As Code (local only)
       if: ${{ inputs.repo-path != '' && inputs.include-iac == 'true' }}
       uses: aquasecurity/trivy-action@0.20.0
       with:

@@ -247,11 +247,11 @@ jobs:
           echo "SBOM file size: ${file_size} bytes"
 
           echo "All SBOM scan assertions passed"
-      - name: Test SBOM Scan with repo including Infra As Code
+      - name: Test SBOM Scan with local repo including Infra As Code
         id: sbom-scan-with-iac
         uses: ./sbom-scan
         with:
-          repo-path: "github.com/NHSDigital/NRLF"
+          repo-path: "."
           include-iac: "true"
           publish-to-dependency-graph: "false"
           artifact-name: "sbom-with-iac"
